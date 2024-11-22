@@ -22,8 +22,8 @@ public class Game
 
         while (GameRunning())
         {
-            TurnInput();
-            GameTurn();
+            Input();
+            GameCycle();
             DisplayGameState();
         }
 
@@ -40,14 +40,14 @@ public class Game
         CreateBotBoard();
     }
 
-    void TurnInput()
+    void Input()
     {
         currentTurn.Board = DetermineCurrentBoard(currentTurn.Board);
 
         currentTurn.Coords = GetShotCoords(currentTurn.Board);
     }
 
-    void GameTurn()
+    void GameCycle()
     {
         bool isHit = GetOtherBoard(currentTurn.Board).Shoot(currentTurn.Coords);
         
