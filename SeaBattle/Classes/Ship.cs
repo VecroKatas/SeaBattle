@@ -1,6 +1,6 @@
-﻿namespace SeaBattle;
+﻿namespace SeaBattle.Classes;
 
-class Ship
+public class Ship
 {
     public Tile[] Tiles;
     public int Size;

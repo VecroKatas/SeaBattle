@@ -1,4 +1,6 @@
-﻿namespace SeaBattle;
+﻿using SeaBattle.Classes;
+
+namespace SeaBattle;
 
 class Program
 {

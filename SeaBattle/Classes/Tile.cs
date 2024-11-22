@@ -1,6 +1,6 @@
-﻿namespace SeaBattle;
+﻿namespace SeaBattle.Classes;
 
-class Tile
+public class Tile
 {
     public static char RegularSymbol => ' ';
     public static char ShotSymbol => '*';

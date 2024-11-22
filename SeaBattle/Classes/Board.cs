@@ -1,6 +1,6 @@
-namespace SeaBattle;
+namespace SeaBattle.Classes;
 
-class Board
+public class Board
 {
     public static int SideSize;
     public static int BiggestShipSize;
@@ -42,30 +42,50 @@ class Board
         }
     }
 
-    public Ship CreateShip(int x, int y, int size, bool rightDirection)
+    public bool CanCreateShip(Vector2 coords, int size, bool rightDirection)
     {
-        Ship ship = new Ship(size);
-        
-        if (!IsTileAvailable(x, y)) return null;
+        int x = coords.X;
+        int y = coords.Y;
+        if (!IsTileAvailable(x, y)) return false;
         
         if (rightDirection)
         {
-            if (x + size > SideSize) return null;
+            if (x + size > SideSize) return false;
                 
             for (int i = 0; i < size; i++)
             {
-                if (!IsTileAvailable(x + i, y)) return null;
-                ship.Tiles[i] = Tiles[y, x + i];
+                if (!IsTileAvailable(x + i, y)) return false;
             }
         }
         else
         {
-            if (y + size > SideSize) return null;
+            if (y + size > SideSize) return false;
             
             for (int i = 0; i < size; i++)
             {
-                if (!IsTileAvailable(x, y + i)) return null;
-                ship.Tiles[i] = Tiles[y + i, x];
+                if (!IsTileAvailable(x, y + i)) return false;
+            }
+        }
+        
+        return true;
+    }
+
+    public void CreateShip(Vector2 coords, int size, bool rightDirection)
+    {
+        Ship ship = new Ship(size);
+        
+        if (rightDirection)
+        {
+            for (int i = 0; i < size; i++)
+            {
+                ship.Tiles[i] = Tiles[coords.Y, coords.X + i];
+            }
+        }
+        else
+        {
+            for (int i = 0; i < size; i++)
+            {
+                ship.Tiles[i] = Tiles[coords.Y + i, coords.X];
             }
         }
 
@@ -76,7 +96,6 @@ class Board
         }
 
         Ships.Add(ship);
-        return ship;
     }
 
     bool IsTileAvailable(int x, int y)
@@ -106,9 +125,9 @@ class Board
         return Tiles[y, x].IsShot;
     }
 
-    public bool TryHit(int x, int y)
+    public bool Shoot(Vector2 coords)
     {
-        Tile tile = Tiles[y, x];
+        Tile tile = Tiles[coords.Y, coords.X];
         
         tile.IsShot = true;
         
