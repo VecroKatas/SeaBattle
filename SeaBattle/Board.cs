@@ -2,9 +2,11 @@ namespace SeaBattle;
 
 class Board
 {
-    public Tile[,] Tiles;
     public static int SideSize;
     public static int BiggestShipSize;
+
+    public Tile[,] Tiles;
+    public bool IsBotBoard;
     public List<Ship> Ships;
 
     public bool AreShipsNotDestroyed
@@ -20,13 +22,9 @@ class Board
         }
     }
 
-    public bool IsBotBoard;
-
-    public Board(int size, int biggestShipSize, bool isPlayerBoard)
+    public Board(bool isPlayerBoard)
     {
-        Tiles = new Tile[size, size];
-        SideSize = size;
-        BiggestShipSize = biggestShipSize;
+        Tiles = new Tile[SideSize, SideSize];
         IsBotBoard = !isPlayerBoard;
         Ships = new List<Ship>();
            
@@ -96,6 +94,11 @@ class Board
         if (y < SideSize - 1 && x > 0 && Tiles[y + 1, x - 1].IsOccupied) return false;            // bl
             
         return true;
+    }
+
+    public char GetCurrentTileSymbol(int x, int y)
+    {
+        return Tiles[y, x].CurrentSymbol;
     }
 
     public bool CheckIfTileIsShot(int x, int y)

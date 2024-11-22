@@ -3,10 +3,13 @@
 public class Game
 {
     private Random random = new Random();
-    private Board board1;
+    private Board board1; 
     private Board board2;
     private GameTurnInfo previousTurn;
     private string lastCoords;
+    private ConsoleColor LastMissedShotColor = ConsoleColor.DarkGreen;
+    private ConsoleColor LastHitColor = ConsoleColor.Red;
+    private ConsoleColor ShotShipColor = ConsoleColor.DarkRed;
 
     public Game()
     {
@@ -15,29 +18,54 @@ public class Game
     
     public void StartGame()
     {
-        CreateBoards();
-        ShowBoards();
+        Initialize();
+        DisplayGameState();
 
-        GameCycle();
+        while (NeitherLost())
+        {
+            GameTurn();
+            DisplayGameState();
+            NotifyTurnResult(previousTurn);
+        }
 
         DetermineWinner();
     }
 
-    void CreateBoards()
+    void Initialize()
     {
+        Board.SideSize = 10;
+        Board.BiggestShipSize = 4;
+        
         CreatePlayerBoard();
 
         CreateBotBoard();
     }
 
+    void GameTurn()
+    {
+        GameTurnInfo currentTurn;
+        currentTurn.Board = DetermineCurrentBoard(previousTurn.Board);
+
+        bool hit;
+        int x, y;
+        (x, y) = GetShotCoords(currentTurn.Board);
+        hit = GetOtherBoard(currentTurn.Board).TryHit(x, y);
+        
+        currentTurn.PreviousTurnHit = hit;
+
+        (currentTurn.ShootX, currentTurn.ShootY) = (x, y);
+        
+        previousTurn = currentTurn;
+    }
+
     void CreatePlayerBoard()
     {
-        board1 = GenerateBoard(10, 4, true, !RequestManualBoardCreation());
+        board1 = GenerateBoard(true, RequestManualBoardCreation());
     }
 
     void CreateBotBoard()
     {
-        board2 = GenerateBoard(10, 4, false, true);
+        board2 = GenerateBoard(false, true);
     }
 
     bool RequestManualBoardCreation()
@@ -47,16 +75,16 @@ public class Game
         return key == ConsoleKey.Y;
     }
 
-    Board GenerateBoard(int size, int biggestShipSize, bool isPlayer, bool doRandomGenerate)
+    Board GenerateBoard(bool isPlayer, bool doManualGeneration)
     {
-        Board newBoard = new Board(size, biggestShipSize, isPlayer);
+        Board newBoard = new Board(isPlayer);
 
-        GenerateShips(newBoard, doRandomGenerate);
+        GenerateShips(newBoard, doManualGeneration);
         
         return newBoard;
     }
 
-     void GenerateShips(Board board, bool doRandomGenerate)
+    void GenerateShips(Board board, bool doManualGeneration)
     {
         for (int i = Board.BiggestShipSize; i > 0; i--)
         {
@@ -66,30 +94,30 @@ public class Game
                 bool isRepeatedRequest = false;
                 do
                 {
-                    (int x, int y, bool isRightDirection) = GetShipCharacteristics(i, doRandomGenerate, isRepeatedRequest); 
+                    (int x, int y, bool isRightDirection) = GetShipCharacteristics(i, doManualGeneration, isRepeatedRequest); 
                     ship = board.CreateShip(x, y, i, isRightDirection);
                     isRepeatedRequest = true;
                 } while (ship == null);
                 
-                if (!doRandomGenerate)
+                if (doManualGeneration)
                     ShowBoard(board);
             }
         }
     }
 
-     (int x, int y, bool isRightDirection) GetShipCharacteristics(int shipSize, bool doRandomGenerate, bool isRepeatedRequest)
+    (int x, int y, bool isRightDirection) GetShipCharacteristics(int shipSize, bool doManualGeneration, bool isRepeatedRequest)
     {
-        if (!doRandomGenerate)
+        if (doManualGeneration)
         {
-            (int x, int y, bool isRightDirection) = RequestInputForShipCreation(shipSize, isRepeatedRequest);
+            (int x, int y, bool isRightDirection) = RequestInfoForShipCreation(shipSize, isRepeatedRequest);
             return (x - 1, y - 1, isRightDirection);
         }
         return (random.Next(0, Board.SideSize - shipSize + 1), random.Next(0, Board.SideSize - shipSize + 1), random.Next(0, 2) == 1);
     }
 
-     (int x, int y, bool isRightDirection) RequestInputForShipCreation(int shipSize, bool repeated)
+    (int x, int y, bool isRightDirection) RequestInfoForShipCreation(int shipSize, bool isRepeatedRequest)
     {
-        if (repeated) Console.WriteLine("Could not create the ship. Lets try again");
+        if (isRepeatedRequest) Console.WriteLine("Could not create the ship. Lets try again");
         
         Console.WriteLine($"Size of the board is {Board.SideSize}x{Board.SideSize}; current ship size is {shipSize}");
         Console.WriteLine("Please, enter top left coordinate of the ship (e.g. a3)");
@@ -102,39 +130,47 @@ public class Game
         return (x, y, isRightDirection);
     }
 
-     (int x, int y) ReadCoords()
+    (int x, int y) ReadCoords()
     {
-        string coords = Console.ReadLine();
+        string coords;
+        int x = int.MinValue;
+        int y;
+        do
+        {
+            if (x != int.MinValue)
+                Console.WriteLine("Entered coords are not valid. Try again");
+            coords = Console.ReadLine();
+            (x, y) = TransformCoords(coords);
+        } while (!AreCoordsValid(x, y));
         lastCoords = coords;
-        return TransformCoords(coords);
-    }
-
-     (int x, int y) TransformCoords(string coords)
-    {
-        int y = coords[0] - 'a';
-        int x = Convert.ToInt32(coords.Substring(1)) - 1;
         return (x, y);
     }
+
+    bool AreCoordsValid(int x, int y)
+    {
+        return x > -1 && x < Board.SideSize && y > -1 && y < Board.SideSize;
+    }
+
+    (int x, int y) TransformCoords(string coords)
+    {
+        try
+        {
+            int y = coords[0] - 'a';
+            int x = Convert.ToInt32(coords.Substring(1)) - 1;
+            return (x, y);
+        }
+        catch (Exception e)
+        {
+            return (-1, -1);
+        }
+    }
     
-     void ShowBoard(Board board)
+    void ShowBoard(Board board)
     {
         Console.WriteLine();
         for (int i = 0; i < Board.SideSize + 1; i++)
         {   
             ShowBoardLine(board, i);
-            Console.WriteLine();
-        }
-    }
-
-     void ShowBoards()
-    {
-        Console.WriteLine();
-        Console.WriteLine(" My board \t\t\t\t\t\t Enemy board");
-        for (int i = 0; i < Board.SideSize + 1; i++)
-        {   
-            ShowBoardLine(board1, i);
-            Console.Write("\t\t\t\t\t");
-            ShowBoardLine(board2, i);
             Console.WriteLine();
         }
     }
@@ -152,46 +188,62 @@ public class Game
             {
                 if (j == 0)
                 {
-                    Console.Write(Convert.ToChar(96 + lineIndex));
+                    Console.Write(Convert.ToChar('a' + lineIndex - 1));
                 }
                 else
                 {
-                    char symbol = board.Tiles[lineIndex - 1, j - 1].CurrentSymbol;
-                    if (board.IsBotBoard && symbol == Tile.ShipSymbol) symbol = Tile.RegularSymbol;  
-                    Console.Write(symbol);
+                    WriteTileSymbol(board, lineIndex, j);
                 }
             }
         }
     }
 
-     void GameCycle()
-     {
-         while (NeitherBoardLost())
-         {
-             GameTurn();
-             ShowBoards();
-             NotifyTurnResult(previousTurn);
-         }
-     }
-
-     bool NeitherBoardLost()
+    void WriteTileSymbol(Board board, int lineIndex, int colIndex)
     {
-        return board1.AreShipsNotDestroyed && board2.AreShipsNotDestroyed;
+        char symbol = board.GetCurrentTileSymbol(lineIndex - 1, colIndex - 1);
+        if (board.IsBotBoard && symbol == Tile.ShipSymbol) 
+            symbol = Tile.RegularSymbol;
+
+        if ((lineIndex - 1, colIndex - 1) == (previousTurn.ShootY, previousTurn.ShootX))
+            WritePreviousShotSymbol(symbol);
+        else
+            WriteSymbol(symbol);
     }
 
-    void GameTurn()
+    void WritePreviousShotSymbol(char symbol)
     {
-        GameTurnInfo currentTurn;
-        currentTurn.Board = DetermineCurrentBoard(previousTurn.Board);
+        if (symbol == Tile.ShotSymbol) 
+            Console.ForegroundColor = LastMissedShotColor;
+        if (symbol == Tile.ShotShipSymbol) 
+            Console.ForegroundColor = LastHitColor;
+        Console.Write(symbol);
+        Console.ForegroundColor = ConsoleColor.White;
+    }
 
-        bool hit;
-        int x, y;
-        (x, y) = GetShotCoords(currentTurn.Board);
-        hit = GetOtherBoard(currentTurn.Board).TryHit(x, y);
-        
-        currentTurn.PreviousTurnHit = hit;
-        
-        previousTurn = currentTurn;
+    void WriteSymbol(char symbol)
+    {
+        if (symbol == Tile.ShotShipSymbol)
+            Console.ForegroundColor = ShotShipColor;
+        Console.Write(symbol);
+        Console.ForegroundColor = ConsoleColor.White;
+    }
+
+    void DisplayGameState()
+    {
+        Console.WriteLine();
+        Console.WriteLine(" My board \t\t\t\t\t\t Enemy board");
+        for (int i = 0; i < Board.SideSize + 1; i++)
+        {   
+            ShowBoardLine(board1, i);
+            Console.Write("\t\t\t\t\t");
+            ShowBoardLine(board2, i);
+            Console.WriteLine();
+        }
+    }
+
+    bool NeitherLost()
+    {
+        return board1.AreShipsNotDestroyed && board2.AreShipsNotDestroyed;
     }
 
     Board DetermineCurrentBoard(Board previousBoard)
@@ -261,5 +313,7 @@ public class Game
     {
         public Board Board;
         public bool PreviousTurnHit;
+        public int ShootX;
+        public int ShootY;
     }
 }
