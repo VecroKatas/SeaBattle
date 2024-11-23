@@ -48,7 +48,7 @@ public class Board
         int y = coords.Y;
         if (!IsTileAvailable(x, y)) return false;
         
-        if (!rightDirection)
+        if (rightDirection)
         {
             if (x + size > SideSize) return false;
                 
@@ -73,8 +73,9 @@ public class Board
     public void CreateShip(Vector2 coords, int size, bool rightDirection)
     {
         Ship ship = new Ship(size);
+        Console.WriteLine(rightDirection);
         
-        if (!rightDirection)
+        if (rightDirection)
         {
             for (int i = 0; i < size; i++)
             {

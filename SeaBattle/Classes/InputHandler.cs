@@ -80,8 +80,8 @@ public static class InputHandler
     {
         try
         {
-            int x = coordsInput[0] - 'a';
-            int y = Convert.ToInt32(coordsInput.Substring(1)) - 1;
+            int y = coordsInput[0] - 'a';
+            int x = Convert.ToInt32(coordsInput.Substring(1)) - 1;
             return new Vector2(x, y, coordsInput);
         }
         catch (Exception)

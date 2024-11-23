@@ -175,11 +175,11 @@ public class Game
 
     void WriteTileSymbol(Board board, int lineIndex, int colIndex)
     {
-        char symbol = board.GetCurrentTileSymbol(lineIndex - 1, colIndex - 1);
+        char symbol = board.GetCurrentTileSymbol(colIndex - 1, lineIndex - 1);
         if (board.IsBotBoard && symbol == Tile.ShipSymbol) 
             symbol = Tile.RegularSymbol;
 
-        if ((lineIndex - 1, colIndex - 1) == (currentTurn.Coords.X, currentTurn.Coords.Y))
+        if ((lineIndex - 1, colIndex - 1) == (currentTurn.Coords.Y, currentTurn.Coords.X))
             WritePreviousShotSymbol(symbol);
         else
             WriteSymbol(symbol);
