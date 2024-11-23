@@ -99,9 +99,7 @@ public class Game
     {
         if (doManualGeneration)
         {
-            (Vector2 coords, bool isRightDirection) = InputHandler.RequestInfoForShipCreation(isRepeatedRequest);
-            coords.X--;
-            coords.Y--;
+            (Vector2 coords, bool isRightDirection) = InputHandler.RequestInfoForShipCreation(shipSize, isRepeatedRequest);
             return (coords, isRightDirection);
         }
 
@@ -181,7 +179,7 @@ public class Game
         if (board.IsBotBoard && symbol == Tile.ShipSymbol) 
             symbol = Tile.RegularSymbol;
 
-        if ((lineIndex - 1, colIndex - 1) == (currentTurn.Coords.Y, currentTurn.Coords.X))
+        if ((lineIndex - 1, colIndex - 1) == (currentTurn.Coords.X, currentTurn.Coords.Y))
             WritePreviousShotSymbol(symbol);
         else
             WriteSymbol(symbol);

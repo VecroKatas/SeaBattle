@@ -12,11 +12,11 @@ public static class InputHandler
         return result;
     }
     
-    public static (Vector2 coords, bool isRightDirection) RequestInfoForShipCreation(bool isRepeatedRequest)
+    public static (Vector2 coords, bool isRightDirection) RequestInfoForShipCreation(int currentSize, bool isRepeatedRequest)
     {
         if (isRepeatedRequest) Console.WriteLine("Could not create the ship. Lets try again");
 
-        Vector2 coords = RequestPlayerShipCoords();
+        Vector2 coords = RequestPlayerShipCoords(currentSize);
         bool isRightDirection = RequestIsRightDirection();
         
         Console.WriteLine();
@@ -24,9 +24,9 @@ public static class InputHandler
         return (coords, isRightDirection);
     }
     
-    private static Vector2 RequestPlayerShipCoords()
+    private static Vector2 RequestPlayerShipCoords(int currentSize)
     {
-        Console.WriteLine($"Size of the board is {Board.SideSize}x{Board.SideSize}; current ship size is {Board.BiggestShipSize}");
+        Console.WriteLine($"Size of the board is {Board.SideSize}x{Board.SideSize}; current ship size is {currentSize}");
         Console.WriteLine("Please, enter top left coordinate of the ship (e.g. a3)");
         return ReadCoords();
     }
@@ -80,8 +80,8 @@ public static class InputHandler
     {
         try
         {
-            int y = coordsInput[0] - 'a';
-            int x = Convert.ToInt32(coordsInput.Substring(1)) - 1;
+            int x = coordsInput[0] - 'a';
+            int y = Convert.ToInt32(coordsInput.Substring(1)) - 1;
             return new Vector2(x, y, coordsInput);
         }
         catch (Exception)

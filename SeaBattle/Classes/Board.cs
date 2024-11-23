@@ -48,7 +48,7 @@ public class Board
         int y = coords.Y;
         if (!IsTileAvailable(x, y)) return false;
         
-        if (rightDirection)
+        if (!rightDirection)
         {
             if (x + size > SideSize) return false;
                 
@@ -74,7 +74,7 @@ public class Board
     {
         Ship ship = new Ship(size);
         
-        if (rightDirection)
+        if (!rightDirection)
         {
             for (int i = 0; i < size; i++)
             {
