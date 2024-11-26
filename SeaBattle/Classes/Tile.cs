@@ -3,9 +3,14 @@
 public class Tile
 {
     public static char RegularSymbol => ' ';
+    public static char ScannedSymbol => '.';
     public static char ShotSymbol => '*';
     public static char ShipSymbol => 'U';
     public static char ShotShipSymbol => '#';
+    
+    public bool IsShot { get; private set; } = false;
+    
+    public bool IsOccupied { get; private set; } = false;
 
     public char CurrentSymbol
     {
@@ -17,8 +22,7 @@ public class Tile
             return RegularSymbol;
         }
     }
-    public bool IsShot = false;
-    public bool IsOccupied = false;
+
     public int X;
     public int Y;
     public Ship Ship;
@@ -28,4 +32,8 @@ public class Tile
         X = x;
         Y = y;
     }
+
+    public void Shoot() => IsShot = true;
+
+    public void Occupy() => IsOccupied = true;
 }

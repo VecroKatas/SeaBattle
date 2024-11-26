@@ -37,10 +37,17 @@ public static class InputHandler
         return Console.ReadKey().Key == ConsoleKey.R;
     }
 
+    public static bool RequestRadarUsage()
+    {
+        Console.WriteLine("Do you want to use radar this turn instead of shooting? y/n");
+        return Console.ReadKey().Key == ConsoleKey.Y;
+    }
+
     public static Vector2 RequestShotCoords(bool isBot)
     {
         if (!isBot)
         {
+            Console.WriteLine();
             Console.WriteLine("Choose a tile to shoot (e.g. a1)");
             return ReadCoords();
         }
@@ -50,6 +57,13 @@ public static class InputHandler
         randomCoords.StringRepresentation = TransformCoordsToString(randomCoords.X, randomCoords.Y);
         
         return randomCoords;
+    }
+
+    public static Vector2 RequestRadarCoords()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Choose a tile to be center of 4x4 radar scan (e.g. a1)");
+        return ReadCoords();
     }
 
     private static Vector2 ReadCoords()

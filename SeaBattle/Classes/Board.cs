@@ -6,7 +6,9 @@ public class Board
     public static int BiggestShipSize;
 
     public Tile[,] Tiles;
-    public bool IsBotBoard;
+    public bool IsBotBoard { get; private set; }
+    public bool IsOpponentBoard { get; private set; }
+    public bool IsRadarAvailable { get; private set; } = true;
     public List<Ship> Ships;
 
     public bool AreShipsNotDestroyed
@@ -15,17 +17,18 @@ public class Board
         {
             foreach (var ship in Ships)
             {
-                if (!ship.Destroyed) return true;
+                if (!ship.IsDestroyed) return true;
             }
 
             return false;
         }
     }
 
-    public Board(bool isPlayerBoard)
+    public Board(bool isPlayerBoard, bool isOpponentBoard)
     {
         Tiles = new Tile[SideSize, SideSize];
         IsBotBoard = !isPlayerBoard;
+        IsOpponentBoard = isOpponentBoard;
         Ships = new List<Ship>();
            
         GenerateEmptyBoard();
@@ -37,7 +40,7 @@ public class Board
         {
             for (int j = 0; j < SideSize; j++)
             {
-                Tiles[i, j] = new Tile(j, i);
+                Tiles[i, j] = new Tile(i, j);
             }
         }
     }
@@ -73,26 +76,25 @@ public class Board
     public void CreateShip(Vector2 coords, int size, bool rightDirection)
     {
         Ship ship = new Ship(size);
-        Console.WriteLine(rightDirection);
         
         if (rightDirection)
         {
             for (int i = 0; i < size; i++)
             {
-                ship.Tiles[i] = Tiles[coords.Y, coords.X + i];
+                ship.Tiles[i] = Tiles[coords.X + i, coords.Y];
             }
         }
         else
         {
             for (int i = 0; i < size; i++)
             {
-                ship.Tiles[i] = Tiles[coords.Y + i, coords.X];
+                ship.Tiles[i] = Tiles[coords.X, coords.Y + i];
             }
         }
 
         for (int i = 0; i < size; i++)
         {
-            ship.Tiles[i].IsOccupied = true;
+            ship.Tiles[i].Occupy();
             ship.Tiles[i].Ship = ship;
         }
 
@@ -101,40 +103,40 @@ public class Board
 
     bool IsTileAvailable(int x, int y)
     {
-        if (Tiles[y, x].IsOccupied) return false; //current available
+        if (Tiles[x, y].IsOccupied) return false; //current available
             
-        if (y > 0 && Tiles[y - 1, x].IsOccupied) return false;                                    // top available
-        if (y < SideSize - 1 && Tiles[y + 1, x].IsOccupied) return false;                         // b
-        if (x > 0 && Tiles[y, x - 1].IsOccupied) return false;                                    // l
-        if (x < SideSize - 1 && Tiles[y, x + 1].IsOccupied) return false;                         // r
+        if (x > 0 && Tiles[x - 1, y].IsOccupied) return false;                                    // l
+        if (x < SideSize - 1 && Tiles[x + 1, y].IsOccupied) return false;                         // r
+        if (y > 0 && Tiles[x, y - 1].IsOccupied) return false;                                    // t
+        if (y < SideSize - 1 && Tiles[x, y + 1].IsOccupied) return false;                         // b
 
-        if (y > 0 && x > 0 && Tiles[y - 1, x - 1].IsOccupied) return false;                       // tl
-        if (y > 0 && x < SideSize - 1 && Tiles[y - 1, x + 1].IsOccupied) return false;            // tr
-        if (y < SideSize - 1 && x < SideSize - 1 && Tiles[y + 1, x + 1].IsOccupied) return false; // br
-        if (y < SideSize - 1 && x > 0 && Tiles[y + 1, x - 1].IsOccupied) return false;            // bl
+        if (x > 0 && y > 0 && Tiles[x - 1, y - 1].IsOccupied) return false;                       // tl
+        if (x < SideSize - 1 && y > 0 && Tiles[x + 1, y - 1].IsOccupied) return false;            // tr
+        if (x < SideSize - 1 && y < SideSize - 1 && Tiles[x + 1, y + 1].IsOccupied) return false; // br
+        if (x > 0 && y < SideSize - 1 && Tiles[x - 1, y + 1].IsOccupied) return false;            // bl
             
         return true;
     }
 
     public char GetCurrentTileSymbol(int x, int y)
     {
-        return Tiles[y, x].CurrentSymbol;
+        return Tiles[x, y].CurrentSymbol;
     }
 
     public bool CheckIfTileIsShot(int x, int y)
     {
-        return Tiles[y, x].IsShot;
+        return Tiles[x, y].IsShot;
     }
 
     public bool Shoot(Vector2 coords)
     {
-        Tile tile = Tiles[coords.Y, coords.X];
-        
-        tile.IsShot = true;
+        Tile tile = Tiles[coords.X, coords.Y];
+
+        tile.Shoot();
         
         if (tile.IsOccupied)
         {
-            if (tile.Ship.Destroyed)
+            if (tile.Ship.CheckDestroyed())
             {
                 DestroyAdjacentTiles(tile.Ship);
             }
@@ -152,15 +154,20 @@ public class Board
             x = tile.X;
             y = tile.Y;
             
-            if (y > 0) Tiles[y - 1, x].IsShot = true;                                    // t
-            if (y < SideSize - 1) Tiles[y + 1, x].IsShot = true;                         // b
-            if (x > 0) Tiles[y, x - 1].IsShot = true;                                    // l
-            if (x < SideSize - 1) Tiles[y, x + 1].IsShot = true;                         // r
+            if (x > 0) Tiles[x - 1, y].Shoot();                                    // l
+            if (x < SideSize - 1) Tiles[x + 1, y].Shoot();                         // r
+            if (y > 0) Tiles[x, y - 1].Shoot();                                    // t
+            if (y < SideSize - 1) Tiles[x, y + 1].Shoot();                         // b
 
-            if (y > 0 && x > 0) Tiles[y - 1, x - 1].IsShot = true;                       // tl
-            if (y > 0 && x < SideSize - 1) Tiles[y - 1, x + 1].IsShot = true;            // tr
-            if (y < SideSize - 1 && x < SideSize - 1) Tiles[y + 1, x + 1].IsShot = true; // br
-            if (y < SideSize - 1 && x > 0) Tiles[y + 1, x - 1].IsShot = true;            // bl
+            if (x > 0 && y > 0) Tiles[x - 1, y - 1].Shoot();                       // tl
+            if (x < SideSize - 1 && y > 0) Tiles[x + 1, y - 1].Shoot();            // tr
+            if (x < SideSize - 1 && y < SideSize - 1) Tiles[x + 1, y + 1].Shoot(); // br
+            if (x > 0 && y < SideSize - 1) Tiles[x - 1, y + 1].Shoot();            // bl
         }
+    }
+
+    public void UseRadar()
+    {
+        IsRadarAvailable = false;
     }
 }

@@ -2,18 +2,18 @@
 
 public class Game
 {
+    private ConsoleColor LastMissedShotColor = ConsoleColor.DarkGreen;
+    private ConsoleColor LastHitColor = ConsoleColor.Red;
+    private ConsoleColor ShotShipColor = ConsoleColor.DarkRed;
+    private ConsoleColor ScannedColor = ConsoleColor.DarkYellow;
+    
     private Random random = new Random();
     private Board board1; 
     private Board board2;
     private GameTurnInfo currentTurn;
-    private ConsoleColor LastMissedShotColor = ConsoleColor.DarkGreen;
-    private ConsoleColor LastHitColor = ConsoleColor.Red;
-    private ConsoleColor ShotShipColor = ConsoleColor.DarkRed;
+    private int radarRange = 3;
 
-    public Game()
-    {
-        currentTurn = new GameTurnInfo() {Board = board2, PreviousTurnHit = false};
-    }
+    public Game() { }
     
     public void StartGame()
     {
@@ -22,6 +22,7 @@ public class Game
 
         while (GameRunning())
         {
+            ChangeTurn();
             Input();
             GameCycle();
             DisplayGameState();
@@ -32,6 +33,8 @@ public class Game
 
     void Initialize()
     {
+        currentTurn = new GameTurnInfo() {Board = board2, PreviousTurnHit = false, UseRadar = false};
+        
         Board.SideSize = 10;
         Board.BiggestShipSize = 4;
         
@@ -40,33 +43,58 @@ public class Game
         CreateBotBoard();
     }
 
+    bool GameRunning()
+    {
+        return board1.AreShipsNotDestroyed && board2.AreShipsNotDestroyed;
+    }
+
+    void ChangeTurn()
+    {
+        currentTurn.UseRadar = false;
+        
+        currentTurn.Board = DetermineCurrentBoard(currentTurn.Board);
+    }
+
     void Input()
     {
-        currentTurn.Board = DetermineCurrentBoard(currentTurn.Board);
+        bool useRadar = false;
+        if (currentTurn.Board is {IsBotBoard: false, IsRadarAvailable: true})
+            useRadar = InputHandler.RequestRadarUsage();
 
-        currentTurn.Coords = GetShotCoords(currentTurn.Board);
+        if (useRadar)
+        {
+            currentTurn.UseRadar = true;
+            currentTurn.Coords = GetRadarCoords(currentTurn.Board);
+        }
+        else
+        {
+            currentTurn.Coords = GetShotCoords(currentTurn.Board);
+        }
     }
 
     void GameCycle()
     {
-        bool isHit = GetOtherBoard(currentTurn.Board).Shoot(currentTurn.Coords);
+        if (!currentTurn.UseRadar)
+        {
+            bool isHit = GetOtherBoard(currentTurn.Board).Shoot(currentTurn.Coords);
         
-        currentTurn.PreviousTurnHit = isHit;
+            currentTurn.PreviousTurnHit = isHit;
+        }
     }
 
     void CreatePlayerBoard()
     {
-        board1 = GenerateBoard(true, InputHandler.RequestManualBoardCreation());
+        board1 = GenerateBoard(true, false, InputHandler.RequestManualBoardCreation());
     }
 
     void CreateBotBoard()
     {
-        board2 = GenerateBoard(false, false);
+        board2 = GenerateBoard(false, true, false);
     }
 
-    Board GenerateBoard(bool isPlayer, bool doManualGeneration)
+    Board GenerateBoard(bool isPlayer, bool isOpponent, bool doManualGeneration)
     {
-        Board newBoard = new Board(isPlayer);
+        Board newBoard = new Board(isPlayer, isOpponent);
 
         GenerateShips(newBoard, doManualGeneration);
         
@@ -107,11 +135,6 @@ public class Game
         return (randomCoords, random.Next(0, 2) == 1);
     }
 
-    bool GameRunning()
-    {
-        return board1.AreShipsNotDestroyed && board2.AreShipsNotDestroyed;
-    }
-
     Board DetermineCurrentBoard(Board previousBoard)
     {
         if (currentTurn.PreviousTurnHit) return previousBoard;
@@ -138,6 +161,27 @@ public class Game
         }
 
         return coords;
+    }
+
+    Vector2 GetRadarCoords(Board board)
+    {
+        board.UseRadar();
+        return InputHandler.RequestRadarCoords();
+    }
+
+    void DisplayGameState()
+    {
+        Console.WriteLine();
+        Console.WriteLine(" My board \t\t\t\t\t\t Enemy board");
+        for (int i = 0; i < Board.SideSize + 1; i++)
+        {   
+            ShowBoardLine(board1, i);
+            Console.Write("\t\t\t\t\t");
+            ShowBoardLine(board2, i);
+            Console.WriteLine();
+        }
+
+        NotifyTurnResult();
     }
     
     void ShowBoard(Board board)
@@ -167,19 +211,45 @@ public class Game
                 }
                 else
                 {
-                    WriteTileSymbol(board, lineIndex, j);
+                    if (board.IsOpponentBoard && currentTurn.UseRadar && AreCoordsWithinRadarRange(j, lineIndex))
+                        WriteScannedTile(board, j, lineIndex);
+                    else
+                        WriteTile(board, j, lineIndex);
                 }
             }
         }
     }
 
-    void WriteTileSymbol(Board board, int lineIndex, int colIndex)
+    bool AreCoordsWithinRadarRange(int x, int y)
     {
-        char symbol = board.GetCurrentTileSymbol(colIndex - 1, lineIndex - 1);
+        int dx = Math.Abs(currentTurn.Coords.X - x);
+        int dy = Math.Abs(currentTurn.Coords.Y - y);
+        return dx < radarRange && dy < radarRange;
+    }
+
+    void WriteScannedTile(Board board, int x, int y)
+    {
+        char symbol = board.GetCurrentTileSymbol(x - 1, y - 1);
+        if (symbol == Tile.RegularSymbol) 
+            symbol = Tile.ScannedSymbol;
+
+        WriteScannedSymbol(symbol);
+    }
+    
+    void WriteScannedSymbol(char symbol)
+    {
+        Console.ForegroundColor = ScannedColor;
+        Console.Write(symbol);
+        Console.ForegroundColor = ConsoleColor.White;
+    }
+
+    void WriteTile(Board board, int x, int y)
+    {
+        char symbol = board.GetCurrentTileSymbol(x - 1, y - 1);
         if (board.IsBotBoard && symbol == Tile.ShipSymbol) 
             symbol = Tile.RegularSymbol;
 
-        if ((lineIndex - 1, colIndex - 1) == (currentTurn.Coords.Y, currentTurn.Coords.X))
+        if ((x - 1, y - 1) == (currentTurn.Coords.X, currentTurn.Coords.Y))
             WritePreviousShotSymbol(symbol);
         else
             WriteSymbol(symbol);
@@ -203,30 +273,15 @@ public class Game
         Console.ForegroundColor = ConsoleColor.White;
     }
 
-    void DisplayGameState()
-    {
-        Console.WriteLine();
-        Console.WriteLine(" My board \t\t\t\t\t\t Enemy board");
-        for (int i = 0; i < Board.SideSize + 1; i++)
-        {   
-            ShowBoardLine(board1, i);
-            Console.Write("\t\t\t\t\t");
-            ShowBoardLine(board2, i);
-            Console.WriteLine();
-        }
-
-        NotifyTurnResult();
-    }
-
     void NotifyTurnResult()
     {
-        if (currentTurn is {PreviousTurnHit: true, Board.IsBotBoard: false})
+        if (currentTurn is {PreviousTurnHit: true, Board.IsOpponentBoard: false})
             Console.WriteLine($"Congratulations! You hit a ship at {currentTurn.Coords.StringRepresentation}. You get another turn!");
-        else if (currentTurn is {PreviousTurnHit: false, Board.IsBotBoard: false})
+        else if (currentTurn is {PreviousTurnHit: false, Board.IsOpponentBoard: false})
             Console.WriteLine($"You missed at {currentTurn.Coords.StringRepresentation}(");
-        else if (currentTurn is {PreviousTurnHit: true, Board.IsBotBoard: true})
+        else if (currentTurn is {PreviousTurnHit: true, Board.IsOpponentBoard: true})
             Console.WriteLine($"Womp womp! Enemy hit your ship at {currentTurn.Coords.StringRepresentation}. They get another turn!");
-        else if (currentTurn is {PreviousTurnHit: false, Board.IsBotBoard: true})
+        else if (currentTurn is {PreviousTurnHit: false, Board.IsOpponentBoard: true})
             Console.WriteLine($"Enemy missed at {currentTurn.Coords.StringRepresentation}!");
     }
 
@@ -242,6 +297,7 @@ public class Game
     {
         public Board Board;
         public bool PreviousTurnHit;
+        public bool UseRadar;
         public Vector2 Coords;
     }
 }
