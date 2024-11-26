@@ -33,13 +33,13 @@ public static class InputHandler
 
     private static bool RequestIsRightDirection()
     {
-        Console.WriteLine("Is the ships orientation right or bottom? r/b");
+        Console.WriteLine("Is the ships orientation right or bottom? (r/b)");
         return Console.ReadKey().Key == ConsoleKey.R;
     }
 
     public static bool RequestRadarUsage()
     {
-        Console.WriteLine("Do you want to use radar this turn instead of shooting? y/n");
+        Console.WriteLine("Do you want to use radar this turn instead of shooting? (y/n)");
         return Console.ReadKey().Key == ConsoleKey.Y;
     }
 
@@ -59,10 +59,10 @@ public static class InputHandler
         return randomCoords;
     }
 
-    public static Vector2 RequestRadarCoords()
+    public static Vector2 RequestRadarCoords(int radius)
     {
         Console.WriteLine();
-        Console.WriteLine("Choose a tile to be center of 4x4 radar scan (e.g. a1)");
+        Console.WriteLine($"Choose a tile to be center of radar scan with radius={radius} (e.g. a1)");
         return ReadCoords();
     }
 
@@ -107,8 +107,8 @@ public static class InputHandler
     private static string TransformCoordsToString(int x, int y)
     {
         string result = "";
-        result += (char)(x + 'a');
-        result += y;
+        result += (char)(y + 'a');
+        result += x + 1;
         return result;
     }
 }

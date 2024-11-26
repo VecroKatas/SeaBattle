@@ -11,13 +11,13 @@ public class Board
     public bool IsRadarAvailable { get; private set; } = true;
     public List<Ship> Ships;
 
-    public bool AreShipsNotDestroyed
+    public bool AreFightingShipsLeft
     {
         get
         {
             foreach (var ship in Ships)
             {
-                if (!ship.IsDestroyed) return true;
+                if (!ship.IsDestroyed && !ship.IsTraitorRevealed) return true;
             }
 
             return false;
@@ -169,5 +169,23 @@ public class Board
     public void UseRadar()
     {
         IsRadarAvailable = false;
+    }
+
+    public Ship FindTraitor()
+    {
+        foreach (var ship in Ships)
+        {
+            if (ship.IsTraitor && !ship.IsTraitorRevealed)
+            {
+                return ship;
+            }
+        }
+
+        return null;
+    }
+
+    public Ship GetShip(int x, int y)
+    {
+        return Tiles[x, y].Ship;
     }
 }

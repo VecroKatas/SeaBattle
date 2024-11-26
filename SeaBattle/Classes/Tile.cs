@@ -33,7 +33,11 @@ public class Tile
         Y = y;
     }
 
-    public void Shoot() => IsShot = true;
+    public void Shoot(){
+        IsShot = true;
+        if (IsOccupied)
+            Ship.Hit();
+    }
 
     public void Occupy() => IsOccupied = true;
 }
