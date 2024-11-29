@@ -1,3 +1,5 @@
+using SeaBattle.Structs;
+
 namespace SeaBattle.Classes;
 
 public class Board
@@ -5,11 +7,9 @@ public class Board
     public static int SideSize;
     public static int BiggestShipSize;
 
-    public Tile[,] Tiles;
-    public bool IsBotBoard { get; private set; }
-    public bool IsOpponentBoard { get; private set; }
-    public bool IsRadarAvailable { get; private set; } = true;
-    public List<Ship> Ships;
+    public Player Player { get; private set; }
+    private Tile[,] Tiles;
+    private List<Ship> Ships;
 
     public bool AreFightingShipsLeft
     {
@@ -24,14 +24,17 @@ public class Board
         }
     }
 
-    public Board(bool isPlayerBoard, bool isOpponentBoard)
+    public Board()
     {
         Tiles = new Tile[SideSize, SideSize];
-        IsBotBoard = !isPlayerBoard;
-        IsOpponentBoard = isOpponentBoard;
         Ships = new List<Ship>();
-           
+        
         GenerateEmptyBoard();
+    }
+
+    public void SetPlayer(Player player)
+    {
+        Player = player;
     }
 
     void GenerateEmptyBoard()
@@ -164,11 +167,6 @@ public class Board
             if (x < SideSize - 1 && y < SideSize - 1) Tiles[x + 1, y + 1].Shoot(); // br
             if (x > 0 && y < SideSize - 1) Tiles[x - 1, y + 1].Shoot();            // bl
         }
-    }
-
-    public void UseRadar()
-    {
-        IsRadarAvailable = false;
     }
 
     public Ship FindTraitor()

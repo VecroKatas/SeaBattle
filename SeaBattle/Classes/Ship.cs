@@ -1,4 +1,6 @@
-﻿namespace SeaBattle.Classes;
+﻿using SeaBattle.Structs;
+
+namespace SeaBattle.Classes;
 
 public class Ship
 {

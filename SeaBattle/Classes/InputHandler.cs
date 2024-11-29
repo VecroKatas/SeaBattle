@@ -1,10 +1,25 @@
-﻿namespace SeaBattle.Classes;
+﻿using SeaBattle.Structs;
+
+namespace SeaBattle.Classes;
 
 public static class InputHandler
 {
     private static Random random = new Random();
+
+    public static ConsoleKeyInfo RequestGameModeKey()
+    {
+        Console.WriteLine("Choose game mode. Press 1/2/3 keys for PvE/PvP/EvE respectfully");
+        return Console.ReadKey();
+    }
+    
+    public static void NotifyPlayerTurn(string currentPlayerName)
+    {
+        Console.WriteLine();
+        Console.WriteLine(currentPlayerName + "'s turn");
+    }
     public static bool RequestManualBoardCreation()
     {
+        Console.WriteLine();
         Console.WriteLine("Do you want to manually create a board? (y/n)");
         ConsoleKey key = Console.ReadKey().Key;
         bool result = key == ConsoleKey.Y;
@@ -43,9 +58,9 @@ public static class InputHandler
         return Console.ReadKey().Key == ConsoleKey.Y;
     }
 
-    public static Vector2 RequestShotCoords(bool isBot)
+    public static Vector2 RequestShotCoords(bool isHuman)
     {
-        if (!isBot)
+        if (isHuman)
         {
             Console.WriteLine();
             Console.WriteLine("Choose a tile to shoot (e.g. a1)");
