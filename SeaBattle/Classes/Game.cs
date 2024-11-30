@@ -37,16 +37,13 @@ public class Game
 
         while (GameRunning())
         {
-            if (_gameMode == GameMode.PvP)
-                DisplayPvPGameState();
-            NotifyCurrentPlayer();
+            DisplayPreTurnGameState();
             
             Input();
             
             GameCycle();
             
-            DisplayGameState();
-            NotifyTurnResult();
+            DisplayPostTurnGameState();
             Wait();
         }
 
@@ -57,7 +54,7 @@ public class Game
     {
         SetGameMode();
 
-        InitiateBoards();
+        InitiateBoardsAndPlayers();
         
         currentTurn = new GameTurnInfo() 
             {CurrentPlayer = player1, OpponentPlayer = player2, TurnHit = false, UseRadar = false, TraitorActed = false};
@@ -76,7 +73,7 @@ public class Game
         };
     }
 
-    void InitiateBoards()
+    void InitiateBoardsAndPlayers()
     {
         boardSize = 10;
         biggestShip = boardSize - 6;
@@ -102,6 +99,19 @@ public class Game
     bool GameRunning()
     {
         return player1.HasNotLost() && player2.HasNotLost();
+    }
+
+    void DisplayPreTurnGameState()
+    {
+        if (_gameMode == GameMode.PvP)
+            DisplayPvPGameState();
+        NotifyCurrentPlayer();
+    }
+
+    void DisplayPostTurnGameState()
+    {
+        DisplayGameState();
+        NotifyTurnResult();
     }
 
     void Wait()
@@ -289,12 +299,18 @@ public class Game
         else
             NotifyTurnResult();
         
-        ShowBoards(currentTurn);
+        if (_gameMode == GameMode.PvP)
+            ShowPvPOpponentBoard(currentTurn);
+        else
+            ShowBoards(currentTurn);
     }
     
     void DisplayGameState()
     {
-        ShowBoards(previousTurn);
+        if (_gameMode == GameMode.PvP)
+            ShowPvPOpponentBoard(previousTurn);
+        else
+            ShowBoards(previousTurn);
     }
 
     void ShowBoards(GameTurnInfo turnInfo)
@@ -315,12 +331,23 @@ public class Game
         Console.WriteLine();
         for (int i = 0; i < Board.SideSize + 1; i++)
         {   
-            ShowCreationBoardLine(board, i, currentTurn);
+            ShowCreationBoardLine(board, i);
+            Console.WriteLine();
+        }
+    }
+
+    void ShowPvPOpponentBoard(GameTurnInfo turnInfo)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Your opponents board");
+        for (int i = 0; i < Board.SideSize + 1; i++)
+        {   
+            ShowBoardLine(turnInfo.OpponentPlayer.Board, i, turnInfo);
             Console.WriteLine();
         }
     }
     
-    void ShowCreationBoardLine(Board board, int lineIndex, GameTurnInfo turnInfo)
+    void ShowCreationBoardLine(Board board, int lineIndex)
     {
         for (int j = 0; j < Board.SideSize + 1; j++)
         {
