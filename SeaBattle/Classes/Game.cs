@@ -163,6 +163,7 @@ public class Game
             currentTurn.UseRadar = true;
             currentTurn.TraitorActed = true;
             currentTurn.Coords = traitor.GetCoords();
+            currentTurn.Coords.GetCoordsToString();
             traitor.Betray();
         }
         
@@ -407,13 +408,13 @@ public class Game
     bool IsTileWithinTraitorRadar(Board board, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
     {
         return turnInfo.TraitorActed && !IsOpponentBoard(board, turnInfo) && turnInfo.UseRadar &&
-               AreCoordsWithinRadarRange(columnIndex - 1, lineIndex - 1, turnInfo);
+               AreCoordsWithinRadarRange(columnIndex, lineIndex, turnInfo);
     }
 
     bool IsOpponentTileWithinRadar(Board board, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
     {
         return !turnInfo.TraitorActed && IsOpponentBoard(board, turnInfo) && turnInfo.UseRadar &&
-               AreCoordsWithinRadarRange(columnIndex - 1, lineIndex - 1, turnInfo);
+               AreCoordsWithinRadarRange(columnIndex, lineIndex, turnInfo);
     }
 
     bool IsOpponentBoard(Board board, GameTurnInfo turnInfo)
@@ -531,15 +532,15 @@ public class Game
         string result = previousTurn switch
         {
             {TraitorActed: true} =>
-                $"One of {previousTurn.CurrentPlayer.Name}'s ships have betrayed them. It is located at {previousTurn.Coords.StringRepresentation}." +
+                $"One of {previousTurn.CurrentPlayer.Name}'s ships have betrayed them. It is located at {previousTurn.Coords.GetCoordsToString()}." +
                 $" You can win without destroying it.",
             {UseRadar: true} =>
-                $"{previousTurn.CurrentPlayer.Name} used radar centered on {previousTurn.Coords.StringRepresentation}.",
+                $"{previousTurn.CurrentPlayer.Name} used radar centered on {previousTurn.Coords.GetCoordsToString()}.",
             {TurnHit: true} =>
-                $"{previousTurn.CurrentPlayer.Name} hit a ship at {previousTurn.Coords.StringRepresentation}. {previousTurn.CurrentPlayer.Name}" +
+                $"{previousTurn.CurrentPlayer.Name} hit a ship at {previousTurn.Coords.GetCoordsToString()}. {previousTurn.CurrentPlayer.Name}" +
                 $" gets another turn!",
             {TurnHit: false} =>
-                $"{previousTurn.CurrentPlayer.Name} missed at {previousTurn.Coords.StringRepresentation}(",
+                $"{previousTurn.CurrentPlayer.Name} missed at {previousTurn.Coords.GetCoordsToString()}(",
         };
         Console.WriteLine(result);
     }

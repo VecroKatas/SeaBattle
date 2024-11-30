@@ -69,7 +69,7 @@ public static class InputHandler
         
         Vector2 randomCoords = new Vector2(random.Next(0, Board.SideSize), random.Next(0, Board.SideSize));
 
-        randomCoords.StringRepresentation = TransformCoordsToString(randomCoords.X, randomCoords.Y);
+        randomCoords.StringRepresentation = randomCoords.GetCoordsToString();
         
         return randomCoords;
     }
@@ -90,7 +90,7 @@ public static class InputHandler
             if (coords.X != int.MinValue)
                 Console.WriteLine("Entered coords are not valid. Try again");
             coordsInput = Console.ReadLine();
-            coords = TransformCoords(coordsInput);
+            coords.SetCoords(coordsInput);
         } while (!AreCoordsValid(coords));
         return coords;
     }
@@ -105,25 +105,5 @@ public static class InputHandler
         return x > -1 && x < Board.SideSize;
     }
 
-    private static Vector2 TransformCoords(string coordsInput)
-    {
-        try
-        {
-            int y = coordsInput[0] - 'a';
-            int x = Convert.ToInt32(coordsInput.Substring(1)) - 1;
-            return new Vector2(x, y, coordsInput);
-        }
-        catch (Exception)
-        {
-            return new Vector2(-1, -1);
-        }
-    }
-
-    private static string TransformCoordsToString(int x, int y)
-    {
-        string result = "";
-        result += (char)(y + 'a');
-        result += x + 1;
-        return result;
-    }
+    
 }
