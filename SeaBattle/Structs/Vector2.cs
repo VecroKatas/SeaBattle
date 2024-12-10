@@ -16,6 +16,11 @@ public struct Vector2
     {
         StringRepresentation = coordsInput;
     }
+
+    public Vector2(string coordsInput)
+    {
+        SetCoords(coordsInput);
+    }
     
     public void SetCoords(string coordsInput)
     {

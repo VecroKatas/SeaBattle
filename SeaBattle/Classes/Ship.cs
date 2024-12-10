@@ -4,7 +4,7 @@ namespace SeaBattle.Classes;
 
 public class Ship
 {
-    public static int TraitorSpawnChance = 10;
+    public static int TraitorSpawnChance = 5;
     public static int TreacheryChance = 20;
     
     public Tile[] Tiles;
@@ -46,7 +46,7 @@ public class Ship
 
     public bool CanBetray()
     {
-        return !IsHit;
+        return !IsHit && IsTraitor;
     }
 
     public void Betray()
@@ -56,6 +56,6 @@ public class Ship
 
     public Vector2 GetCoords()
     {
-        return new Vector2() {X = Tiles[0].X, Y = Tiles[0].Y};
+        return new Vector2(Tiles[0].X, Tiles[0].Y);
     }
 }

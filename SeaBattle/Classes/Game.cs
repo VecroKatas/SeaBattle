@@ -20,7 +20,7 @@ public class Game
     private int boardSize;
     private int biggestShip;
     private int radarRadius = 3;
-    private int waitTime = 800;
+    private int waitTime = 1000;
     private bool firstTurn = true;
 
     private enum GameMode
@@ -30,6 +30,14 @@ public class Game
         EvE
     }
     
+    public Game(){}
+
+    public Game(Player player1, Player player2)
+    {
+        this.player1 = player1;
+        this.player2 = player2;
+    }
+    
     public void StartGame()
     {
         Initialize();
@@ -37,13 +45,14 @@ public class Game
 
         while (GameRunning())
         {
-            DisplayPreTurnGameState();
+            NotifyCurrentPlayer();
             
             Input();
             
-            GameCycle();
+            GameLogic();
             
-            DisplayPostTurnGameState();
+            DisplayGameState();
+            NotifyTurnResult();
             Wait();
         }
 
@@ -88,12 +97,30 @@ public class Game
             GameMode.EvE => (CreateBotBoard(), CreateBotBoard(), false, false),
             _ => (CreatePlayerBoard(), CreateBotBoard(), true, false)
         };
+
+        if (player1 == null)
+            player1 = new Player(isHumanBoard1, board1, "Player 1");
         
-        player1 = new Player(isHumanBoard1, board1, "Player 1");
-        player2 = new Player(isHumanBoard2, board2, "Player 2");
+        if (player2 == null)
+            player2 = new Player(isHumanBoard2, board2, "Player 2");
         
         board1.SetPlayer(player1);
         board2.SetPlayer(player2);
+    }
+    /*
+        винести ініціалізацію гравців у GameManager
+        зробити створення нового гравця якщо нічого не задано, або присвоєння борди до заданого гравця
+        автоматичне визначення режиму гри, базуючись на введенних гравцях
+        гейм менеджер має зберігати дані про кількість перемог кожного гравця, граємо best of 3
+    
+    */
+    
+    
+    void SetBoardToPlayer(Player player, Board board)
+    {
+        player.Board = board;
+        
+        board.SetPlayer(player);
     }
     
     bool GameRunning()
@@ -101,36 +128,9 @@ public class Game
         return player1.HasNotLost() && player2.HasNotLost();
     }
 
-    void DisplayPreTurnGameState()
-    {
-        if (_gameMode == GameMode.PvP)
-            DisplayPvPGameState();
-        NotifyCurrentPlayer();
-    }
-
-    void DisplayPostTurnGameState()
-    {
-        DisplayGameState();
-        NotifyTurnResult();
-    }
-
     void Wait()
     {
-        if (_gameMode == GameMode.PvP && CanPassTurn())
-        {
-            Console.WriteLine();
-            Console.WriteLine("Press any key to pass the turn");
-            Console.ReadKey();
-        }
-        else
-        {
-            System.Threading.Thread.Sleep(waitTime);
-        }
-    }
-
-    bool CanPassTurn()
-    {
-        return !previousTurn.TurnHit || previousTurn.UseRadar;
+        System.Threading.Thread.Sleep(waitTime);
     }
 
     void NotifyCurrentPlayer()
@@ -140,22 +140,10 @@ public class Game
 
     void Input()
     {
-        bool useRadar = false;
-        if (currentTurn.CurrentPlayer is {IsHuman: true, IsRadarAvailable: true})
-            useRadar = InputHandler.RequestRadarUsage();
-
-        if (useRadar)
-        {
-            currentTurn.UseRadar = true;
-            currentTurn.Coords = GetRadarCoords(currentTurn.CurrentPlayer);
-        }
-        else
-        {
-            currentTurn.Coords = GetShotCoords(currentTurn.CurrentPlayer);
-        }
+        currentTurn.Coords = GetTurnCoords(currentTurn.CurrentPlayer);
     }
 
-    void GameCycle()
+    void GameLogic()
     {
         Ship traitor = currentTurn.CurrentPlayer.Board.FindTraitor();
         if (DoesTraitorAct(traitor))
@@ -163,7 +151,6 @@ public class Game
             currentTurn.UseRadar = true;
             currentTurn.TraitorActed = true;
             currentTurn.Coords = traitor.GetCoords();
-            currentTurn.Coords.GetCoordsToString();
             traitor.Betray();
         }
         
@@ -197,6 +184,10 @@ public class Game
     Board CreatePlayerBoard()
     {
         Board board = GenerateBoard(InputHandler.RequestManualBoardCreation());
+        
+        ShowCreationBoard(board);
+        
+        Wait();
         
         Console.Clear();
 
@@ -269,60 +260,60 @@ public class Game
         return player == player1 ? player2 : player1;
     }
 
-    Vector2 GetRadarCoords(Player player)
+    Vector2 GetTurnCoords(Player player)
     {
-        player.UseRadar();
-        return InputHandler.RequestRadarCoords(radarRadius);
+        if (player is {IsRadarAvailable: true, IsHuman: true})
+        {
+            (bool useRadar, Vector2 coords) = InputHandler.RequestTurnInput();
+            if (useRadar)
+            {
+                currentTurn.UseRadar = true;
+                player.UseRadar();
+                return coords;
+            }
+            return GetShotCoords(player, coords);
+        }
+        
+        return GetShotCoords(player, new Vector2(-1, -1));
     }
 
-    Vector2 GetShotCoords(Player player)
+    Vector2 GetShotCoords(Player player, Vector2 coords)
     {
         bool canShoot = false;
-        Vector2 coords = new Vector2(-1, -1);
+        if (coords.X != -1)
+            canShoot = !GetOtherPlayer(player).Board.CheckIfTileIsShot(coords.X, coords.Y);
+        
         while (!canShoot)
         {
             if (coords.X != -1 && player.IsHuman)
                 Console.WriteLine($"You cannot shoot {coords.StringRepresentation}.");
-                
-            coords = InputHandler.RequestShotCoords(player.IsHuman);
+            
+            if (player.IsHuman)
+                coords = InputHandler.RequestShotCoords();
+            else
+                coords = new Vector2(random.Next(0, Board.SideSize), random.Next(0, Board.SideSize));
 
             canShoot = !GetOtherPlayer(player).Board.CheckIfTileIsShot(coords.X, coords.Y);
         }
 
         return coords;
     }
-
-    void DisplayPvPGameState()
-    {
-        Console.Clear();
-        if (firstTurn)
-            firstTurn = false;
-        else
-            NotifyTurnResult();
-        
-        if (_gameMode == GameMode.PvP)
-            ShowPvPOpponentBoard(currentTurn);
-        else
-            ShowBoards(currentTurn);
-    }
     
     void DisplayGameState()
     {
-        if (_gameMode == GameMode.PvP)
-            ShowPvPOpponentBoard(previousTurn);
-        else
-            ShowBoards(previousTurn);
+        ShowBoards(previousTurn);
     }
 
     void ShowBoards(GameTurnInfo turnInfo)
     {
         Console.WriteLine();
         Console.WriteLine($" {player1.Name} board \t {player2.Name} board");
+        
         for (int i = 0; i < Board.SideSize + 1; i++)
-        {   
-            ShowBoardLine(player1.Board, i, turnInfo);
+        {
+            ShowBoardLine(player1.Board, IsOpponentPlayer(player1, turnInfo), !player1.IsHuman, i, turnInfo);
             Console.Write("\t\t");
-            ShowBoardLine(player2.Board, i, turnInfo);
+            ShowBoardLine(player2.Board, IsOpponentPlayer(player2, turnInfo), !player2.IsHuman, i, turnInfo);
             Console.WriteLine();
         }
     }
@@ -333,17 +324,6 @@ public class Game
         for (int i = 0; i < Board.SideSize + 1; i++)
         {   
             ShowCreationBoardLine(board, i);
-            Console.WriteLine();
-        }
-    }
-
-    void ShowPvPOpponentBoard(GameTurnInfo turnInfo)
-    {
-        Console.WriteLine();
-        Console.WriteLine("Your opponents board");
-        for (int i = 0; i < Board.SideSize + 1; i++)
-        {   
-            ShowBoardLine(turnInfo.OpponentPlayer.Board, i, turnInfo);
             Console.WriteLine();
         }
     }
@@ -371,7 +351,7 @@ public class Game
         }
     }
 
-    void ShowBoardLine(Board board, int lineIndex, GameTurnInfo turnInfo)
+    void ShowBoardLine(Board board, bool isOpponentBoard, bool isBotPlayer, int lineIndex, GameTurnInfo turnInfo)
     {
         for (int j = 0; j < Board.SideSize + 1; j++)
         {
@@ -388,38 +368,38 @@ public class Game
                 }
                 else
                 {
-                    if (IsTileWithinTraitorRadar(board, j - 1, lineIndex - 1, turnInfo))
+                    if (IsTileWithinTraitorRadar(isOpponentBoard, j - 1, lineIndex - 1, turnInfo))
                     {
                         WriteScannedTile(board, j - 1, lineIndex - 1);
                     }
-                    else if (IsOpponentTileWithinRadar(board, j - 1, lineIndex - 1, turnInfo))
+                    else if (IsOpponentTileWithinRadar(isOpponentBoard, j - 1, lineIndex - 1, turnInfo))
                     {
                         WriteScannedTile(board, j - 1, lineIndex - 1);
                     }
                     else
                     {
-                        WriteTile(board, j - 1, lineIndex - 1, turnInfo);
+                        WriteTile(board, isBotPlayer, j - 1, lineIndex - 1, turnInfo);
                     }
                 }
             }
         }
     }
 
-    bool IsTileWithinTraitorRadar(Board board, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
+    bool IsTileWithinTraitorRadar(bool isOpponentBoard, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
     {
-        return turnInfo.TraitorActed && !IsOpponentBoard(board, turnInfo) && turnInfo.UseRadar &&
+        return turnInfo.TraitorActed && !isOpponentBoard && turnInfo.UseRadar &&
                AreCoordsWithinRadarRange(columnIndex, lineIndex, turnInfo);
     }
 
-    bool IsOpponentTileWithinRadar(Board board, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
+    bool IsOpponentTileWithinRadar(bool isOpponentBoard, int columnIndex, int lineIndex, GameTurnInfo turnInfo)
     {
-        return !turnInfo.TraitorActed && IsOpponentBoard(board, turnInfo) && turnInfo.UseRadar &&
+        return !turnInfo.TraitorActed && isOpponentBoard && turnInfo.UseRadar &&
                AreCoordsWithinRadarRange(columnIndex, lineIndex, turnInfo);
     }
 
-    bool IsOpponentBoard(Board board, GameTurnInfo turnInfo)
+    bool IsOpponentPlayer(Player player, GameTurnInfo turnInfo)
     {
-        if (board.Player == turnInfo.CurrentPlayer)
+        if (player == turnInfo.CurrentPlayer)
             return false;
 
         return true;
@@ -455,11 +435,11 @@ public class Game
         WriteSymbol(symbol);
     }
 
-    void WriteTile(Board board, int x, int y, GameTurnInfo turnInfo)
+    void WriteTile(Board board, bool isBotPlayer, int x, int y, GameTurnInfo turnInfo)
     {
         char symbol = board.GetCurrentTileSymbol(x, y);
         bool isTraitorTile = IsTraitorShipTile(board, x, y);
-        if (HideShipTile(board, symbol, isTraitorTile, turnInfo))
+        if (ShouldHideShipTile(isBotPlayer, symbol, isTraitorTile))
             symbol = Tile.RegularSymbol;
 
         if (IsJustShotTile(x, y, board, turnInfo))
@@ -470,19 +450,14 @@ public class Game
             WriteSymbol(symbol);
     }
 
-    bool HideShipTile(Board board, char symbol, bool isTraitorTile, GameTurnInfo turnInfo)
+    bool ShouldHideShipTile(bool isBotPlayer, char symbol, bool isTraitorTile)
     {
         return _gameMode switch
         {
-            GameMode.PvE => IsBotBoard(board) && symbol == Tile.ShipSymbol && !isTraitorTile,
-            GameMode.PvP => IsOpponentBoard(board, turnInfo) && symbol == Tile.ShipSymbol && !isTraitorTile,
+            GameMode.PvE => isBotPlayer && symbol == Tile.ShipSymbol && !isTraitorTile,
+            GameMode.PvP => symbol == Tile.ShipSymbol && !isTraitorTile,
             GameMode.EvE => false
         };
-    }
-
-    bool IsBotBoard(Board board)
-    {
-        return !board.Player.IsHuman;
     }
 
     bool IsJustShotTile(int x, int y, Board board, GameTurnInfo turnInfo)
@@ -532,8 +507,8 @@ public class Game
         string result = previousTurn switch
         {
             {TraitorActed: true} =>
-                $"One of {previousTurn.CurrentPlayer.Name}'s ships have betrayed them. It is located at {previousTurn.Coords.GetCoordsToString()}." +
-                $" You can win without destroying it.",
+                $"One of {previousTurn.CurrentPlayer.Name}'s ships have betrayed them and refused to shoot. It is located at {previousTurn.Coords.GetCoordsToString()}." +
+                $" The other player can win without destroying it.",
             {UseRadar: true} =>
                 $"{previousTurn.CurrentPlayer.Name} used radar centered on {previousTurn.Coords.GetCoordsToString()}.",
             {TurnHit: true} =>

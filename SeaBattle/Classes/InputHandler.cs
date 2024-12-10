@@ -15,6 +15,7 @@ public static class InputHandler
     public static void NotifyPlayerTurn(string currentPlayerName)
     {
         Console.WriteLine();
+        Console.WriteLine();
         Console.WriteLine(currentPlayerName + "'s turn");
     }
     public static bool RequestManualBoardCreation()
@@ -58,26 +59,24 @@ public static class InputHandler
         return Console.ReadKey().Key == ConsoleKey.Y;
     }
 
-    public static Vector2 RequestShotCoords(bool isHuman)
-    {
-        if (isHuman)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Choose a tile to shoot (e.g. a1)");
-            return ReadCoords();
-        }
-        
-        Vector2 randomCoords = new Vector2(random.Next(0, Board.SideSize), random.Next(0, Board.SideSize));
-
-        randomCoords.StringRepresentation = randomCoords.GetCoordsToString();
-        
-        return randomCoords;
-    }
-
-    public static Vector2 RequestRadarCoords(int radius)
+    public static (bool useRadar, Vector2 coords) RequestTurnInput()
     {
         Console.WriteLine();
-        Console.WriteLine($"Choose a tile to be center of radar scan with radius={radius} (e.g. a1)");
+        Console.WriteLine("Write coords to shoot (e.g. a1), or to scan (e.g. radar a1)");
+        string[] input = Console.ReadLine().Split(' ');
+
+        if (input[0] == "radar")
+        {
+            return (true, ReadCoords(input[1]));
+        }
+
+        return (false, ReadCoords(input[0]));
+    }
+
+    public static Vector2 RequestShotCoords()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Choose a tile to shoot (e.g. a1)");
         return ReadCoords();
     }
 
@@ -94,6 +93,19 @@ public static class InputHandler
         } while (!AreCoordsValid(coords));
         return coords;
     }
+    
+    private static Vector2 ReadCoords(string coordsInput)
+    {
+        Vector2 coords = new Vector2(coordsInput);
+        while (!AreCoordsValid(coords))
+        {
+            if (coords.X != int.MinValue)
+                Console.WriteLine("Entered coords are not valid. Try again");
+            coordsInput = Console.ReadLine();
+            coords.SetCoords(coordsInput);
+        }
+        return coords;
+    }
 
     private static bool AreCoordsValid(Vector2 coords)
     {
@@ -104,6 +116,4 @@ public static class InputHandler
     {
         return x > -1 && x < Board.SideSize;
     }
-
-    
 }
