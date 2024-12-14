@@ -1,6 +1,4 @@
-﻿using SeaBattle.Structs;
-
-namespace SeaBattle.Classes;
+﻿namespace SeaBattle.Classes;
 
 public static class InputHandler
 {
@@ -10,6 +8,11 @@ public static class InputHandler
     {
         Console.WriteLine("Choose game mode. Press 1/2/3 keys for PvE/PvP/EvE respectfully");
         return Console.ReadKey();
+    }
+
+    public static Profile RequestPlayerProfile()
+    {
+        return Profile.CreateGuestProfile();
     }
     
     public static void NotifyPlayerTurn(string currentPlayerName)

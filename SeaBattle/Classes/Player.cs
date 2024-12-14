@@ -1,19 +1,12 @@
-﻿using SeaBattle.Structs;
-
-namespace SeaBattle.Classes;
+﻿namespace SeaBattle.Classes;
 
 public class Player
 {
-    public Board Board;
+    public Board Board { get; set; }
     public bool IsHuman { get; private set; }
     public bool IsRadarAvailable { get; private set; } = true;
 
-    private string name;
-    public string Name
-    {
-        get => name + (IsHuman ? " (human)" : " (bot)");
-        set => name = value; 
-    }
+    public string Name { get; set; }
 
     public Player(bool isHuman, Board board, string name)
     {
@@ -21,6 +14,14 @@ public class Player
         Board = board;
         Name = name;
     }
+
+    public Player(bool isHuman, string name)
+    {
+        IsHuman = isHuman;
+        Name = name;
+    }
+
+    public Player(Profile profile) : this(true, profile.Name) { }
 
     public bool HasNotLost()
     {
@@ -35,5 +36,10 @@ public class Player
     public bool GetShot(Vector2 coords)
     {
         return Board.Shoot(coords);
+    }
+
+    public string GetName()
+    {
+        return Name + (IsHuman ? " (human)" : " (bot)");
     }
 }

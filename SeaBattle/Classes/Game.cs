@@ -1,7 +1,59 @@
-﻿using SeaBattle.Structs;
+﻿namespace SeaBattle.Classes;
 
-namespace SeaBattle.Classes;
+public struct Vector2
+{
+    public string StringRepresentation = "";
+    public int X;
+    public int Y;
 
+    public Vector2(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+    
+    public Vector2(int x, int y, string coordsInput) : this(x, y)
+    {
+        StringRepresentation = coordsInput;
+    }
+
+    public Vector2(string coordsInput)
+    {
+        SetCoords(coordsInput);
+    }
+    
+    public void SetCoords(string coordsInput)
+    {
+        try
+        {
+            int y = coordsInput[0] - 'a';
+            int x = Convert.ToInt32(coordsInput.Substring(1)) - 1;
+            this = new Vector2(x, y, coordsInput);
+        }
+        catch (Exception)
+        {
+            this = new Vector2(-1, -1, "0-1");
+        }
+    }
+
+    public string GetCoordsToString()
+    {
+        if (StringRepresentation == "")
+        {
+            string result = "";
+            result += (char)(Y + 'a');
+            result += X + 1;
+            StringRepresentation = result;
+        }
+        return StringRepresentation;
+    }
+}
+public enum GameMode
+{
+    PvP,
+    PvE,
+    EvE
+}
 public class Game
 {
     private ConsoleColor LastMissedShotColor = ConsoleColor.DarkGreen;
@@ -12,48 +64,49 @@ public class Game
     private ConsoleColor TraitorShipColor = ConsoleColor.Magenta;
     
     private Random random = new Random();
-    private GameMode _gameMode;
+    private GameMode _gamemode;
+    
     private Player player1;
     private Player player2;
+    
     private GameTurnInfo currentTurn;
     private GameTurnInfo previousTurn;
+
+    private int roundCount;
+    
     private int boardSize;
     private int biggestShip;
     private int radarRadius = 3;
-    private int waitTime = 1000;
-    private bool firstTurn = true;
+    private int waitTime = 0;
 
-    private enum GameMode
+    private bool firstPlayerWon;
+    public Game(GameMode gamemode, Player player1, Player player2, bool bothGuests, int roundCount)
     {
-        PvP,
-        PvE,
-        EvE
-    }
-    
-    public Game(){}
-
-    public Game(Player player1, Player player2)
-    {
+        this.roundCount = roundCount;
+        _gamemode = gamemode;
+        
         this.player1 = player1;
         this.player2 = player2;
+
+        if (bothGuests && player1.IsHuman && player2.IsHuman)
+        {
+            this.player1.Name += " 1";
+            this.player2.Name += " 2";
+        }
     }
     
-    public void StartGame()
+    public void PlayGame()
     {
         Initialize();
-        DisplayGameState();
+        DisplayPreGameState();
 
         while (GameRunning())
         {
-            NotifyCurrentPlayer();
-            
             Input();
             
             GameLogic();
             
             DisplayGameState();
-            NotifyTurnResult();
-            Wait();
         }
 
         DetermineWinner(); 
@@ -61,25 +114,13 @@ public class Game
 
     void Initialize()
     {
-        SetGameMode();
-
+        Console.Clear();
+        
         InitiateBoardsAndPlayers();
         
         currentTurn = new GameTurnInfo() 
             {CurrentPlayer = player1, OpponentPlayer = player2, TurnHit = false, UseRadar = false, TraitorActed = false};
         previousTurn = currentTurn;
-    }
-
-    void SetGameMode()
-    {
-        ConsoleKeyInfo key = InputHandler.RequestGameModeKey();
-        _gameMode = key.Key switch
-        {
-            ConsoleKey.D1 => GameMode.PvE,
-            ConsoleKey.D2 => GameMode.PvP,
-            ConsoleKey.D3 => GameMode.EvE,
-            _ => GameMode.PvE
-        };
     }
 
     void InitiateBoardsAndPlayers()
@@ -90,37 +131,17 @@ public class Game
         Board.SideSize = boardSize;
         Board.BiggestShipSize = biggestShip;
         
-        (Board board1, Board board2, bool isHumanBoard1, bool isHumanBoard2) = _gameMode switch
+        (Board board1, Board board2) = _gamemode switch
         {
-            GameMode.PvE => (CreatePlayerBoard(), CreateBotBoard(), true, false),
-            GameMode.PvP => (CreatePlayerBoard(), CreatePlayerBoard(), true, true),
-            GameMode.EvE => (CreateBotBoard(), CreateBotBoard(), false, false),
-            _ => (CreatePlayerBoard(), CreateBotBoard(), true, false)
+            GameMode.PvE => (CreatePlayerBoard(), CreateBotBoard()),
+            GameMode.PvP => (CreatePlayerBoard(), CreatePlayerBoard()),
+            GameMode.EvE => (CreateBotBoard(), CreateBotBoard()),
+            _ => (CreatePlayerBoard(), CreateBotBoard())
         };
 
-        if (player1 == null)
-            player1 = new Player(isHumanBoard1, board1, "Player 1");
+        player1.Board = board1;
         
-        if (player2 == null)
-            player2 = new Player(isHumanBoard2, board2, "Player 2");
-        
-        board1.SetPlayer(player1);
-        board2.SetPlayer(player2);
-    }
-    /*
-        винести ініціалізацію гравців у GameManager
-        зробити створення нового гравця якщо нічого не задано, або присвоєння борди до заданого гравця
-        автоматичне визначення режиму гри, базуючись на введенних гравцях
-        гейм менеджер має зберігати дані про кількість перемог кожного гравця, граємо best of 3
-    
-    */
-    
-    
-    void SetBoardToPlayer(Player player, Board board)
-    {
-        player.Board = board;
-        
-        board.SetPlayer(player);
+        player2.Board = board2;
     }
     
     bool GameRunning()
@@ -135,7 +156,7 @@ public class Game
 
     void NotifyCurrentPlayer()
     {
-        InputHandler.NotifyPlayerTurn(currentTurn.CurrentPlayer.Name);
+        InputHandler.NotifyPlayerTurn(currentTurn.CurrentPlayer.GetName());
     }
 
     void Input()
@@ -299,15 +320,24 @@ public class Game
         return coords;
     }
     
+    void DisplayPreGameState()
+    {
+        Console.WriteLine("Round №" + roundCount);
+        ShowBoards(previousTurn);
+    }
+    
     void DisplayGameState()
     {
         ShowBoards(previousTurn);
+        NotifyTurnResult();
+        Wait();
+        NotifyCurrentPlayer();
     }
 
     void ShowBoards(GameTurnInfo turnInfo)
     {
         Console.WriteLine();
-        Console.WriteLine($" {player1.Name} board \t {player2.Name} board");
+        Console.WriteLine($" {player1.GetName()} board \t {player2.GetName()} board");
         
         for (int i = 0; i < Board.SideSize + 1; i++)
         {
@@ -335,7 +365,7 @@ public class Game
             Console.Write(' ');
             if (lineIndex == 0)
             {
-                Console.Write(j);
+                Console.Write(j == 0 ? " " : j);
             }
             else
             {
@@ -358,7 +388,7 @@ public class Game
             Console.Write(' ');
             if (lineIndex == 0)
             {
-                Console.Write(j);
+                Console.Write(j == 0 ? " " : j);
             }
             else
             {
@@ -452,7 +482,7 @@ public class Game
 
     bool ShouldHideShipTile(bool isBotPlayer, char symbol, bool isTraitorTile)
     {
-        return _gameMode switch
+        return _gamemode switch
         {
             GameMode.PvE => isBotPlayer && symbol == Tile.ShipSymbol && !isTraitorTile,
             GameMode.PvP => symbol == Tile.ShipSymbol && !isTraitorTile,
@@ -507,25 +537,30 @@ public class Game
         string result = previousTurn switch
         {
             {TraitorActed: true} =>
-                $"One of {previousTurn.CurrentPlayer.Name}'s ships have betrayed them and refused to shoot. It is located at {previousTurn.Coords.GetCoordsToString()}." +
+                $"One of {previousTurn.CurrentPlayer.GetName()}'s ships have betrayed them and refused to shoot. It is located at {previousTurn.Coords.GetCoordsToString()}." +
                 $" The other player can win without destroying it.",
             {UseRadar: true} =>
-                $"{previousTurn.CurrentPlayer.Name} used radar centered on {previousTurn.Coords.GetCoordsToString()}.",
+                $"{previousTurn.CurrentPlayer.GetName()} used radar centered on {previousTurn.Coords.GetCoordsToString()}.",
             {TurnHit: true} =>
-                $"{previousTurn.CurrentPlayer.Name} hit a ship at {previousTurn.Coords.GetCoordsToString()}. {previousTurn.CurrentPlayer.Name}" +
+                $"{previousTurn.CurrentPlayer.GetName()} hit a ship at {previousTurn.Coords.GetCoordsToString()}. {previousTurn.CurrentPlayer.GetName()}" +
                 $" gets another turn!",
             {TurnHit: false} =>
-                $"{previousTurn.CurrentPlayer.Name} missed at {previousTurn.Coords.GetCoordsToString()}(",
+                $"{previousTurn.CurrentPlayer.GetName()} missed at {previousTurn.Coords.GetCoordsToString()}(",
         };
         Console.WriteLine(result);
     }
 
     void DetermineWinner()
     {
-        if (!player1.HasNotLost())
-            Console.WriteLine($"{player1.Name} won!");
+        if (DidPlayer1Win())
+            Console.WriteLine($"{player1.GetName()} won!");
         else 
-            Console.WriteLine($"{player2.Name} won!");
+            Console.WriteLine($"{player2.GetName()} won!");
+    }
+
+    public bool DidPlayer1Win()
+    {
+        return player1.HasNotLost();
     }
 
     struct GameTurnInfo

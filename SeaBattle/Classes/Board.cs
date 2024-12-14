@@ -1,5 +1,3 @@
-using SeaBattle.Structs;
-
 namespace SeaBattle.Classes;
 
 public class Board
@@ -7,7 +5,6 @@ public class Board
     public static int SideSize;
     public static int BiggestShipSize;
 
-    public Player Player { get; private set; }
     private Tile[,] Tiles;
     private List<Ship> Ships;
 
@@ -30,11 +27,6 @@ public class Board
         Ships = new List<Ship>();
         
         GenerateEmptyBoard();
-    }
-
-    public void SetPlayer(Player player)
-    {
-        Player = player;
     }
 
     void GenerateEmptyBoard()
