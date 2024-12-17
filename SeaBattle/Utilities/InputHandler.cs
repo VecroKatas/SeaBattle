@@ -1,4 +1,6 @@
-﻿namespace SeaBattle.Classes;
+﻿using SeaBattle.GameNamespace;
+
+namespace SeaBattle.Utilities;
 
 public static class InputHandler
 {
@@ -6,13 +8,29 @@ public static class InputHandler
 
     public static ConsoleKeyInfo RequestGameModeKey()
     {
+        
         Console.WriteLine("Choose game mode. Press 1/2/3 keys for PvE/PvP/EvE respectfully");
-        return Console.ReadKey();
+        ConsoleKeyInfo key = Console.ReadKey();
+        Console.WriteLine();
+        return key;
     }
 
-    public static Profile RequestPlayerProfile()
+    public static int RequestProfileIndex()
     {
-        return Profile.CreateGuestProfile();
+        Console.WriteLine("Enter index of the profile you wish to play as");
+        string indexStr;
+        int index;
+        bool parsed;
+        do
+        {
+            indexStr = Console.ReadLine();
+            parsed = int.TryParse(indexStr, out index);
+            if (!parsed)
+                Console.WriteLine("Wrong input. Try again parsing numbers");
+        } while (!parsed);
+
+        Console.WriteLine();
+        return index;
     }
     
     public static void NotifyPlayerTurn(string currentPlayerName)
@@ -118,5 +136,12 @@ public static class InputHandler
     private static bool IsCoordValid(int x)
     {
         return x > -1 && x < Board.SideSize;
+    }
+
+    public static void WaitForInput()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Press any key to continue");
+        Console.ReadKey();
     }
 }

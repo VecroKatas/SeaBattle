@@ -1,4 +1,4 @@
-namespace SeaBattle.Classes;
+namespace SeaBattle.GameNamespace;
 
 public class Board
 {

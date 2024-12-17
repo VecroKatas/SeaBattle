@@ -1,4 +1,4 @@
-﻿using SeaBattle.Classes;
+﻿using SeaBattle.LauncherNamespace;
 
 namespace SeaBattle;
 
@@ -6,7 +6,8 @@ class Program
 {
     static void Main(string[] args)
     {
-        Lobby lobby = new Lobby();
-        lobby.StartNewGame();
+        Launcher launcher = new Launcher();
+        launcher.Initialize();
+        launcher.LaunchNewLobby();
     }
 }

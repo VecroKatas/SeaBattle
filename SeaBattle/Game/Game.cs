@@ -1,4 +1,7 @@
-﻿namespace SeaBattle.Classes;
+﻿using SeaBattle.LobbyNamespace;
+using SeaBattle.Utilities;
+
+namespace SeaBattle.GameNamespace;
 
 public struct Vector2
 {
@@ -80,18 +83,18 @@ public class Game
     private int waitTime = 0;
 
     private bool firstPlayerWon;
-    public Game(GameMode gamemode, Player player1, Player player2, bool bothGuests, int roundCount)
+    public Game(GameMode gamemode, LobbyMember member1, LobbyMember member2, bool bothGuests, int roundCount)
     {
         this.roundCount = roundCount;
         _gamemode = gamemode;
         
-        this.player1 = player1;
-        this.player2 = player2;
+        player1 = member1.Player;
+        player2 = member2.Player;
 
         if (bothGuests && player1.IsHuman && player2.IsHuman)
         {
-            this.player1.Name += " 1";
-            this.player2.Name += " 2";
+            player1.Name += " 1";
+            player2.Name += " 2";
         }
     }
     
@@ -125,8 +128,8 @@ public class Game
 
     void InitiateBoardsAndPlayers()
     {
-        boardSize = 10;
-        biggestShip = boardSize - 6;
+        boardSize = 2;
+        biggestShip = 1;
         
         Board.SideSize = boardSize;
         Board.BiggestShipSize = biggestShip;

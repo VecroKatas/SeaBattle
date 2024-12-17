@@ -1,4 +1,6 @@
-﻿namespace SeaBattle.Classes;
+﻿using SeaBattle.LobbyNamespace;
+
+namespace SeaBattle.GameNamespace;
 
 public class Player
 {
