@@ -128,8 +128,8 @@ public class Game
 
     void InitiateBoardsAndPlayers()
     {
-        boardSize = 2;
-        biggestShip = 1;
+        boardSize = 10;
+        biggestShip = 4;
         
         Board.SideSize = boardSize;
         Board.BiggestShipSize = biggestShip;
@@ -184,7 +184,6 @@ public class Game
         
             currentTurn.TurnHit = isHit;
         }
-        
         ChangeTurn();
     }
 
@@ -220,7 +219,7 @@ public class Game
 
     Board CreateBotBoard()
     {
-        return GenerateBoard( false);
+        return GenerateBoard(false);
     }
 
     Board GenerateBoard(bool doManualGeneration)
@@ -293,6 +292,7 @@ public class Game
             {
                 currentTurn.UseRadar = true;
                 player.UseRadar();
+                GetOtherPlayer(player).Board.GetScanned(coords, radarRadius);
                 return coords;
             }
             return GetShotCoords(player, coords);
@@ -311,11 +311,8 @@ public class Game
         {
             if (coords.X != -1 && player.IsHuman)
                 Console.WriteLine($"You cannot shoot {coords.StringRepresentation}.");
-            
-            if (player.IsHuman)
-                coords = InputHandler.RequestShotCoords();
-            else
-                coords = new Vector2(random.Next(0, Board.SideSize), random.Next(0, Board.SideSize));
+
+            coords = player.GetShotCoords(GetOtherPlayer(player).Board);
 
             canShoot = !GetOtherPlayer(player).Board.CheckIfTileIsShot(coords.X, coords.Y);
         }

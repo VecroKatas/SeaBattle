@@ -12,6 +12,8 @@ public class Tile
     
     public bool IsOccupied { get; private set; } = false;
 
+    public bool AreNeighbouringTilesShot { get; private set; } = false;
+    
     public char CurrentSymbol
     {
         get

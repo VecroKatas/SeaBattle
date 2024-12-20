@@ -8,7 +8,6 @@ public static class InputHandler
 
     public static ConsoleKeyInfo RequestGameModeKey()
     {
-        
         Console.WriteLine("Choose game mode. Press 1/2/3 keys for PvE/PvP/EvE respectfully");
         ConsoleKeyInfo key = Console.ReadKey();
         Console.WriteLine();
@@ -32,6 +31,15 @@ public static class InputHandler
         Console.WriteLine();
         return index;
     }
+
+    public static ConsoleKeyInfo RequestBotDifficulty()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Choose bot difficulty. Press 1/2/3 keys for 'Random', 'Shooting suspected ship places' or 'Shooting suspected and scanned ship places' respectfully");
+        ConsoleKeyInfo key = Console.ReadKey();
+        Console.WriteLine();
+        return key;
+    }
     
     public static void NotifyPlayerTurn(string currentPlayerName)
     {
@@ -39,6 +47,7 @@ public static class InputHandler
         Console.WriteLine();
         Console.WriteLine(currentPlayerName + "'s turn");
     }
+    
     public static bool RequestManualBoardCreation()
     {
         Console.WriteLine();

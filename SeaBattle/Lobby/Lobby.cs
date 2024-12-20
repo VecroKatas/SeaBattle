@@ -83,13 +83,13 @@ public class Lobby
         {
             case GameMode.PvP:
             {
-                member1.Player = CreatePlayer("Player 1", ref member1.Profile);
-                member2.Player = CreatePlayer("Player 2", ref member2.Profile);
+                member1.Player = CreatePlayer("Player 1", member1.Profile);
+                member2.Player = CreatePlayer("Player 2", member2.Profile);
                 break;
             }
             case GameMode.PvE:
             {
-                member1.Player = CreatePlayer("Player 1", ref member1.Profile);
+                member1.Player = CreatePlayer("Player 1", member1.Profile);
                 member2.Player = CreateBot("Player 2");
                 break;
             }
@@ -102,8 +102,7 @@ public class Lobby
         }
     }
 
-    //може тут не треба ref, але вирішу потім
-    private Player CreatePlayer(string name, ref Profile profile)
+    private Player CreatePlayer(string name, Profile profile)
     {
         if (profile.IsGuest)
         {
@@ -124,8 +123,15 @@ public class Lobby
 
     private Player CreateBot(string name)
     {
-        // in future different bot behaviours
-        return new Player(false, name);
+        ConsoleKeyInfo key = InputHandler.RequestBotDifficulty();
+        BotDifficulty botDifficulty = key.Key switch
+        {
+            ConsoleKey.D1 => BotDifficulty.Random,
+            ConsoleKey.D2 => BotDifficulty.ShootingNearbyHit,
+            ConsoleKey.D3 => BotDifficulty.ShootingNearbyHitAndRadar,
+            _ => BotDifficulty.Random
+        };
+        return new BotPlayer(botDifficulty, false, name);
     }
     
     private bool AreBothPlayersGuests() => member1.Profile.IsGuest && member2.Profile.IsGuest;

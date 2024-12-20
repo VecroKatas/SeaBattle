@@ -1,4 +1,5 @@
 ﻿using SeaBattle.LobbyNamespace;
+using SeaBattle.Utilities;
 
 namespace SeaBattle.GameNamespace;
 
@@ -9,13 +10,8 @@ public class Player
     public bool IsRadarAvailable { get; private set; } = true;
 
     public string Name { get; set; }
-
-    public Player(bool isHuman, Board board, string name)
-    {
-        IsHuman = isHuman;
-        Board = board;
-        Name = name;
-    }
+    
+    public Player (){}
 
     public Player(bool isHuman, string name)
     {
@@ -25,6 +21,11 @@ public class Player
 
     public Player(Profile profile) : this(true, profile.Name) { }
 
+    public virtual Vector2 GetShotCoords(Board opponentBoard)
+    {
+        return InputHandler.RequestShotCoords();
+    }
+    
     public bool HasNotLost()
     {
         return Board.AreFightingShipsLeft;

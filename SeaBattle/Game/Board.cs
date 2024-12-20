@@ -8,6 +8,9 @@ public class Board
     private Tile[,] Tiles;
     private List<Ship> Ships;
 
+    public List<Tile> TilesToCheckHit { get; private set; }
+    public List<Tile> TilesToHit { get; private set; }
+
     public bool AreFightingShipsLeft
     {
         get
@@ -25,6 +28,8 @@ public class Board
     {
         Tiles = new Tile[SideSize, SideSize];
         Ships = new List<Ship>();
+        TilesToCheckHit = new List<Tile>();
+        TilesToHit = new List<Tile>();
         
         GenerateEmptyBoard();
     }
@@ -126,19 +131,44 @@ public class Board
     public bool Shoot(Vector2 coords)
     {
         Tile tile = Tiles[coords.X, coords.Y];
-
-        tile.Shoot();
         
         if (tile.IsOccupied)
         {
+            MarkNeighbouringTiles(coords);
+            
             if (tile.Ship.CheckDestroyed())
             {
                 DestroyAdjacentTiles(tile.Ship);
             }
             return true;
         }
+
+        ShootTile(tile);
         
         return false;
+    }
+
+    private void MarkNeighbouringTiles(Vector2 coords)
+    {
+        int x = coords.X;
+        int y = coords.Y;
+        
+        if (x > 0 && !Tiles[x - 1, y].IsShot)               AddTileToCheckMarked(x - 1, y);                         // l
+        if (x < SideSize - 1 && !Tiles[x + 1, y].IsShot)    AddTileToCheckMarked(x + 1, y);                         // r
+        if (y > 0 && !Tiles[x, y - 1].IsShot)               AddTileToCheckMarked(x, y - 1);                         // t
+        if (y < SideSize - 1 && !Tiles[x, y + 1].IsShot)    AddTileToCheckMarked(x, y + 1);                         // b
+    }
+
+    private void AddTileToCheckMarked(int x, int y)
+    {
+        Tile markedTile = Tiles[x, y];
+        if (!TilesToCheckHit.Contains(markedTile))
+            TilesToCheckHit.Add(markedTile);
+    }
+
+    private void RemoveTileFromCheckMarked(Tile tile)
+    {
+        TilesToCheckHit.Remove(tile);
     }
 
     private void DestroyAdjacentTiles(Ship ship)
@@ -149,23 +179,30 @@ public class Board
             x = tile.X;
             y = tile.Y;
             
-            if (x > 0) Tiles[x - 1, y].Shoot();                                    // l
-            if (x < SideSize - 1) Tiles[x + 1, y].Shoot();                         // r
-            if (y > 0) Tiles[x, y - 1].Shoot();                                    // t
-            if (y < SideSize - 1) Tiles[x, y + 1].Shoot();                         // b
+            if (x > 0)              ShootTile(Tiles[x - 1, y]);               // l
+            if (x < SideSize - 1)   ShootTile(Tiles[x + 1, y]);               // r
+            if (y > 0)              ShootTile(Tiles[x, y - 1]);               // t
+            if (y < SideSize - 1)   ShootTile(Tiles[x, y + 1]);               // b
 
-            if (x > 0 && y > 0) Tiles[x - 1, y - 1].Shoot();                       // tl
-            if (x < SideSize - 1 && y > 0) Tiles[x + 1, y - 1].Shoot();            // tr
-            if (x < SideSize - 1 && y < SideSize - 1) Tiles[x + 1, y + 1].Shoot(); // br
-            if (x > 0 && y < SideSize - 1) Tiles[x - 1, y + 1].Shoot();            // bl
+            if (x > 0 && y > 0)                         ShootTile(Tiles[x - 1, y - 1]);       // tl
+            if (x < SideSize - 1 && y > 0)              ShootTile(Tiles[x + 1, y - 1]);       // tr
+            if (x < SideSize - 1 && y < SideSize - 1)   ShootTile(Tiles[x + 1, y + 1]);       // br
+            if (x > 0 && y < SideSize - 1)              ShootTile(Tiles[x - 1, y + 1]);       // bl
         }
+    }
+
+    private void ShootTile(Tile tile)
+    {
+        tile.Shoot();
+        RemoveTileFromCheckMarked(tile);
+        RemoveTileFromHitMarked(tile);
     }
 
     public Ship FindTraitor()
     {
         foreach (var ship in Ships)
         {
-            if (ship.IsTraitor && !ship.IsTraitorRevealed)
+            if (ship is {IsTraitor: true, IsTraitorRevealed: false})
             {
                 return ship;
             }
@@ -177,5 +214,39 @@ public class Board
     public Ship GetShip(int x, int y)
     {
         return Tiles[x, y].Ship;
+    }
+
+    public void GetScanned(Vector2 coords, int radarRadius)
+    {
+        for (int i = coords.X - radarRadius; i < coords.X + radarRadius; i++)
+        {
+            for (int j = coords.Y - radarRadius; j < coords.Y + radarRadius; j++)
+            {
+                if (AreCoordsWithinRadarRange(i, j, coords, radarRadius))
+                {
+                    Tile tile = Tiles[i, j];
+                    if (tile is {IsOccupied: true, IsShot: false})
+                        AddTileToHitMarked(tile);
+                }
+            }
+        }
+    }
+    
+    bool AreCoordsWithinRadarRange(int x, int y, Vector2 coords, int radarRadius)
+    {
+        int dx = Math.Abs(coords.X - x);
+        int dy = Math.Abs(coords.Y - y);
+        return dx * dx + dy * dy <= radarRadius * radarRadius;
+    }
+
+    private void AddTileToHitMarked(Tile tile)
+    {
+        if (!TilesToHit.Contains(tile))
+            TilesToHit.Add(tile);
+    }
+
+    private void RemoveTileFromHitMarked(Tile tile)
+    {
+        TilesToHit.Remove(tile);
     }
 }
